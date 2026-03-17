@@ -67,7 +67,7 @@ FraudDetectionSystem/
 
 **Risk levels:** SAFE → green popup &nbsp;|&nbsp; MEDIUM → orange popup &nbsp;|&nbsp; HIGH → red popup + buzzer alarm
 
- ![Fraud Alert](screenshots/fraud_alert.png) 
+ ![Fraud Alert](screenshots/Fraud_alert.png) 
 
 ---
 
