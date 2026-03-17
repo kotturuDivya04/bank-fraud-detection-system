@@ -177,22 +177,13 @@ Browser → Java BankServer (8080) → MySQL (balance, save transaction)
 ![History](screenshots/history.png)
 
 ---
-
-## ❌ Common Errors
-
-| Error | Fix |
-|---|---|
-| "Cannot connect to server" | Start Java BankServer first |
-| Login fails | Use ACC1001 format, check MySQL is running |
-| No buzzer sound | Click anywhere on page first (browser audio policy) |
-| `fraud_model.pkl not found` | Run `python train_model.py` |
-| Compile error on Windows | Use quotes: `".;mysql-connector..."` |
-| Fraud alerts count shows 0 | Check BankServer uses `alert_time` not `created_at` |
-
 ---
 
-## 📝 Notes
+<div align="center">
 
-- Academic project — PIN stored as plain text, not for production use
-- ML model accuracy is 100% on synthetic dataset — real data would differ
-- All files must stay in the same folder
+Made with ❤️ by **Divya**  
+B.Tech Computer Science | Mini Project
+
+[![GitHub](https://img.shields.io/badge/GitHub-Divya-181717?style=flat&logo=github)](https://github.com/kotturuDivya04)
+
+</div>
