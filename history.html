@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>History — Bank Fraud Detection System</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- Header -->
+<div class="page-header">
+  <h2>🏦 Bank Fraud Detection System</h2>
+  <span id="accLabel"></span>
+</div>
+
+<div class="container">
+  <a href="dashboard.html" class="back-link">← Back to Dashboard</a>
+
+  <div class="card">
+    <h3>📋 Transaction History</h3>
+
+    <!-- Filter Buttons -->
+    <div class="filters">
+      <button class="filter-btn active" onclick="load('today', this)">Today</button>
+      <button class="filter-btn"        onclick="load('7days', this)">Last 7 Days</button>
+      <button class="filter-btn"        onclick="load('30days', this)">Last 30 Days</button>
+    </div>
+
+    <!-- Table -->
+    <table>
+      <thead>
+        <tr>
+          <th>Date &amp; Time</th>
+          <th>Type</th>
+          <th>Amount</th>
+          <th>Risk Level</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody">
+        <tr>
+          <td colspan="4" style="text-align:center; color:#aaa; padding:28px;">
+            Loading transactions...
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+  </div>
+</div>
+
+<script src="app.js"></script>
+<script>
+  requireLogin();
+
+  var account = getAccount();
+  document.getElementById("accLabel").textContent = "Account: " + account;
+
+  async function load(period, btn) {
+    // Update active button highlight
+    document.querySelectorAll(".filter-btn").forEach(function(b) {
+      b.classList.remove("active");
+    });
+    if (btn) btn.classList.add("active");
+
+    // Show loading state
+    document.getElementById("tableBody").innerHTML =
+      '<tr><td colspan="4" style="text-align:center;color:#aaa;padding:28px;">Loading...</td></tr>';
+
+    var data = await apiGet("/api/history?account=" + account + "&period=" + period);
+
+    var tbody = document.getElementById("tableBody");
+
+    if (!data || data.length === 0) {
+      tbody.innerHTML =
+        '<tr><td colspan="4" style="text-align:center;color:#aaa;padding:28px;">No transactions found.</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = data.map(function(t) {
+      return "<tr>" +
+        "<td>" + formatDate(t.date) + "</td>" +
+        "<td>" + t.type + "</td>" +
+        "<td>" + formatRupee(t.amount) + "</td>" +
+        "<td>" + riskBadge(t.risk) + "</td>" +
+        "</tr>";
+    }).join("");
+  }
+
+  // Load today on page open
+  load("today", null);
+</script>
+</body>
+</html>

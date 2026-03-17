@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Transfer — Bank Fraud Detection System</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- Header -->
+<div class="page-header">
+  <h2>🏦 Bank Fraud Detection System</h2>
+  <span id="accLabel"></span>
+</div>
+
+<div class="container">
+  <a href="dashboard.html" class="back-link">← Back to Dashboard</a>
+
+  <div class="card">
+    <h3>💸 Transfer Money</h3>
+
+    <div class="form-group">
+      <label for="amount">Amount (Rs.)</label>
+      <input
+        type="number"
+        id="amount"
+        placeholder="Enter amount"
+        min="1"
+        oninput="updateRiskBar(this.value)">
+    </div>
+
+    <!-- Live Risk Preview Bar -->
+    <div style="margin: 4px 0 20px;">
+      <label style="font-size:13px;font-weight:600;color:#555;">Live Fraud Risk Preview</label>
+      <div class="risk-bar-wrap">
+        <div class="risk-bar" id="riskBar"></div>
+      </div>
+      <div class="risk-label" id="riskLabel">Enter amount to see risk</div>
+    </div>
+
+    <div class="form-group">
+      <label for="beneficiary">Select Beneficiary</label>
+      <select id="beneficiary">
+        <option value="">-- Select Beneficiary --</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label for="remarks">Remarks (optional)</label>
+      <input type="text" id="remarks" placeholder="e.g. Rent, EMI, Salary...">
+    </div>
+
+    <button class="btn btn-blue btn-full" id="transferBtn" onclick="transfer()">
+      Transfer
+    </button>
+
+    <div class="error-msg" id="error"></div>
+  </div>
+</div>
+
+<!-- Fraud Alert Popup -->
+<div class="alert-overlay" id="alertOverlay">
+  <div class="alert-box" id="alertBox">
+    <div class="alert-emoji" id="alertEmoji"></div>
+    <div class="alert-title" id="alertTitle"></div>
+    <div class="alert-msg"   id="alertMsg"></div>
+    <button class="btn btn-blue" onclick="closeAlert(); window.location.href='dashboard.html'">OK</button>
+  </div>
+</div>
+
+<script src="app.js"></script>
+<script>
+  requireLogin();
+
+  var account = getAccount();
+  document.getElementById("accLabel").textContent = "Account: " + account;
+
+  // Load beneficiaries into dropdown
+  async function loadBeneficiaries() {
+    var data = await apiGet("/api/beneficiaries?account=" + account);
+    var sel  = document.getElementById("beneficiary");
+
+    if (!data || data.length === 0) {
+      var opt        = document.createElement("option");
+      opt.value      = "";
+      opt.textContent = "No beneficiaries — add from Dashboard";
+      opt.disabled   = true;
+      sel.appendChild(opt);
+      return;
+    }
+
+    data.forEach(function(b) {
+      var opt        = document.createElement("option");
+      opt.value      = b.account;
+      opt.textContent = b.account;
+      sel.appendChild(opt);
+    });
+  }
+
+  async function transfer() {
+    var amount = parseFloat(document.getElementById("amount").value);
+    var bene   = document.getElementById("beneficiary").value;
+    var err    = document.getElementById("error");
+    var btn    = document.getElementById("transferBtn");
+
+    err.style.display = "none";
+
+    if (!amount || amount <= 0) {
+      err.textContent   = "Please enter a valid amount.";
+      err.style.display = "block";
+      return;
+    }
+
+    if (!bene) {
+      err.textContent   = "Please select a beneficiary.";
+      err.style.display = "block";
+      return;
+    }
+
+    btn.textContent = "Processing...";
+    btn.disabled    = true;
+
+    var result = await apiPost("/api/transfer", {
+      account:   account,
+      toAccount: bene,
+      amount:    amount
+    });
+
+    btn.textContent = "Transfer";
+    btn.disabled    = false;
+
+    if (result.success) {
+      showAlert(result.risk, amount);
+    } else {
+      err.textContent   = result.message || "Transfer failed.";
+      err.style.display = "block";
+    }
+  }
+
+  loadBeneficiaries();
+</script>
+</body>
+</html>

@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login — Bank Fraud Detection System</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div class="login-page">
+  <div class="login-box">
+
+    <h1>🏦 Bank Fraud Detection System</h1>
+    <p>Sign in with your account number and PIN</p>
+
+    <div class="form-group">
+      <label for="account">Account Number</label>
+      <input type="text" id="account" placeholder="e.g. ACC001" autocomplete="off">
+    </div>
+
+    <div class="form-group">
+      <label for="pin">PIN</label>
+      <input type="password" id="pin" placeholder="Enter your PIN" maxlength="6">
+    </div>
+
+    <button class="btn btn-blue btn-full" id="loginBtn" onclick="login()">Login</button>
+
+    <div class="error-msg" id="error"></div>
+
+  </div>
+</div>
+
+<script src="app.js"></script>
+<script>
+  async function login() {
+    var acc = document.getElementById("account").value.trim().toUpperCase();
+    var pin = document.getElementById("pin").value.trim();
+    var err = document.getElementById("error");
+    var btn = document.getElementById("loginBtn");
+
+    err.style.display = "none";
+
+    if (!acc || !pin) {
+      err.textContent = "Please enter both account number and PIN.";
+      err.style.display = "block";
+      return;
+    }
+
+    btn.textContent = "Logging in...";
+    btn.disabled    = true;
+
+    var result = await apiPost("/api/login", { accountNumber: acc, pin: pin });
+
+    btn.textContent = "Login";
+    btn.disabled    = false;
+
+    if (result.success) {
+      saveSession(result.accountNumber);
+      window.location.href = "dashboard.html";
+    } else {
+      err.textContent = result.message || "Login failed. Check your credentials.";
+      err.style.display = "block";
+    }
+  }
+
+  // Press Enter to login
+  document.getElementById("pin").addEventListener("keydown", function(e) {
+    if (e.key === "Enter") login();
+  });
+</script>
+</body>
+</html>

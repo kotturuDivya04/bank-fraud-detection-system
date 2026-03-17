@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard — Bank Fraud Detection System</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- Header -->
+<div class="page-header">
+  <h2>🏦 Bank Fraud Detection System</h2>
+  <span id="accLabel">Loading...</span>
+</div>
+
+<div class="container">
+
+  <!-- Stat Cards -->
+  <div class="stats">
+    <div class="stat-card">
+      <div class="label">💰 Balance</div>
+      <div class="value" id="balance">—</div>
+    </div>
+    <div class="stat-card green">
+      <div class="label">⬇️ Today Deposits</div>
+      <div class="value" id="deposits">—</div>
+    </div>
+    <div class="stat-card orange">
+      <div class="label">⬆️ Today Withdrawals</div>
+      <div class="value" id="withdrawals">—</div>
+    </div>
+    <div class="stat-card red">
+      <div class="label">🚨 Fraud Alerts Today</div>
+      <div class="value" id="alerts">—</div>
+    </div>
+  </div>
+
+  <!-- Action Buttons -->
+  <div class="card">
+    <h3>Quick Actions</h3>
+    <div class="actions">
+      <a href="transfer.html"  class="btn btn-blue">💸 Transfer Money</a>
+      <button class="btn btn-green"  onclick="openModal('DEPOSIT')">⬇️ Deposit</button>
+      <button class="btn btn-orange" onclick="openModal('WITHDRAW')">⬆️ Withdraw</button>
+      <a href="history.html"   class="btn btn-grey">📋 Transaction History</a>
+      <button class="btn btn-grey"   onclick="openAddBeneficiary()">👤 Add Beneficiary</button>
+      <button class="btn btn-red"    onclick="logout()">🚪 Logout</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- Fraud Alert Popup -->
+<div class="alert-overlay" id="alertOverlay">
+  <div class="alert-box" id="alertBox">
+    <div class="alert-emoji" id="alertEmoji"></div>
+    <div class="alert-title" id="alertTitle"></div>
+    <div class="alert-msg"   id="alertMsg"></div>
+    <button class="btn btn-blue" onclick="closeAlert(); loadDashboard()">OK</button>
+  </div>
+</div>
+
+<!-- Deposit / Withdraw Modal -->
+<div class="modal-overlay" id="actionModal">
+  <div class="modal-box">
+    <h3 id="modalTitle">Action</h3>
+    <div class="form-group">
+      <label>Amount (Rs.)</label>
+      <input type="number" id="modalAmount" placeholder="Enter amount" min="1">
+    </div>
+    <div class="modal-buttons">
+      <button class="btn btn-blue" style="flex:1" onclick="submitAction()">Confirm</button>
+      <button class="btn btn-grey" style="flex:1" onclick="closeModal()">Cancel</button>
+    </div>
+    <div class="error-msg" id="modalError"></div>
+  </div>
+</div>
+
+<!-- Add Beneficiary Modal -->
+<div class="modal-overlay" id="benModal">
+  <div class="modal-box">
+    <h3>👤 Add Beneficiary</h3>
+    <div class="form-group">
+      <label>Beneficiary Account Number</label>
+      <input type="text" id="benAccount" placeholder="e.g. ACC002" autocomplete="off">
+    </div>
+    <div class="modal-buttons">
+      <button class="btn btn-blue" style="flex:1" onclick="submitBeneficiary()">Add</button>
+      <button class="btn btn-grey" style="flex:1" onclick="closeBenModal()">Cancel</button>
+    </div>
+    <div class="error-msg" id="benError"></div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+<script>
+  requireLogin();
+
+  var account       = getAccount();
+  var currentAction = null;
+
+  document.getElementById("accLabel").textContent = "Account: " + account;
+
+  // ── Load dashboard data ─────────────────────────────────────────
+  async function loadDashboard() {
+    var data = await apiGet("/api/dashboard?account=" + account);
+    if (!data) {
+      document.getElementById("balance").textContent = "Server offline";
+      return;
+    }
+    document.getElementById("balance").textContent     = formatRupee(data.balance);
+    document.getElementById("deposits").textContent    = formatRupee(data.deposits);
+    document.getElementById("withdrawals").textContent = formatRupee(data.withdrawals);
+    document.getElementById("alerts").textContent      = data.alerts;
+  }
+
+  // ── Deposit / Withdraw modal ────────────────────────────────────
+  function openModal(type) {
+    currentAction = type;
+    document.getElementById("modalTitle").textContent  = type === "DEPOSIT" ? "⬇️ Deposit Funds" : "⬆️ Withdraw Funds";
+    document.getElementById("modalAmount").value       = "";
+    document.getElementById("modalError").style.display = "none";
+    document.getElementById("actionModal").classList.add("show");
+  }
+
+  function closeModal() {
+    document.getElementById("actionModal").classList.remove("show");
+  }
+
+  async function submitAction() {
+    var amount = parseFloat(document.getElementById("modalAmount").value);
+    var errEl  = document.getElementById("modalError");
+    errEl.style.display = "none";
+
+    if (!amount || amount <= 0) {
+      errEl.textContent   = "Please enter a valid amount.";
+      errEl.style.display = "block";
+      return;
+    }
+
+    closeModal();
+
+    var result = await apiPost("/api/transaction", {
+      account: account,
+      type:    currentAction,
+      amount:  amount
+    });
+
+    if (result.success) {
+      showAlert(result.risk, amount);
+    } else {
+      alert(result.message || "Transaction failed.");
+    }
+  }
+
+  // ── Add Beneficiary modal ───────────────────────────────────────
+  function openAddBeneficiary() {
+    document.getElementById("benAccount").value        = "";
+    document.getElementById("benError").style.display  = "none";
+    document.getElementById("benModal").classList.add("show");
+  }
+
+  function closeBenModal() {
+    document.getElementById("benModal").classList.remove("show");
+  }
+
+  async function submitBeneficiary() {
+    var benAcc = document.getElementById("benAccount").value.trim().toUpperCase();
+    var errEl  = document.getElementById("benError");
+    errEl.style.display = "none";
+
+    if (!benAcc) {
+      errEl.textContent   = "Please enter a beneficiary account number.";
+      errEl.style.display = "block";
+      return;
+    }
+
+    var result = await apiPost("/api/addBeneficiary", {
+      account:            account,
+      beneficiaryAccount: benAcc
+    });
+
+    closeBenModal();
+    if (result.success) {
+      alert("Beneficiary " + benAcc + " added successfully!");
+    } else {
+      alert(result.message || "Could not add beneficiary.");
+    }
+  }
+
+  loadDashboard();
+</script>
+</body>
+</html>
